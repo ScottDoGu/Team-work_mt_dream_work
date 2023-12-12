@@ -1,0 +1,507 @@
+---
+title: "World Happiness"
+author: "Emiliano Mendez & Scott Clayton"
+date: "2023-11-15"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = F)
+knitr::opts_chunk$set(message=F)
+knitr::opts_chunk$set(warning=F)
+```
+
+
+### "World Happiness Report (up to 2022)"
+
+  Happiness is essential to life and creativity... sadness can be causation for invention and expansion as circumstances veil, but it is, after all, the pursuit of happiness that is the National time-honored right of the USA.  
+  "Life, Liberty and the pursuit of Happiness" from the United States Declaration of Independence; gives three examples of the unalienable rights which the Declaration says have been given to all humans by their Creator, and which governments are created to protect...   
+  Emiliano and Scott have set out on this basis to discover that the pursuit of happiness should not be grasping at wind, that it is indeed attainable!     
+  The World Happiness Report, an annual survey launched in 2012 by the former UN Secretary-General, Ban Ki-Moon, and world-renowned economist and professor, Jeffrey Sachs, the (Sustainable Development Solutions Network) SDSN promotes integrated approaches to implement the SD goals and the Paris Agreement on Climate Change, through education, research, policy analysis, and global cooperation, transcends traditional metrics of national progress by evaluating global happiness. Assessing life satisfaction through the Cantril ladder 100,000 nationals gallop-poll and examines six critical factors. These factors benchmark against 'Dystopia', a hypothetical least-happy state, to highlight each country's relative performance.    
+  
+![Master Minds](https://lirp.cdn-website.com/6f2c9f57/dms3rep/multi/opt/Jeffrey-Sachs-Ban-ki-Moon-Indicators-report-1920w.jpg)
+
+### Load Packages
+```{r echo=TRUE}
+
+if(!require('viridis')) {install.packages('viridis')}
+if(!require('shinyWidgets')) {install.packages('shinyWidgets')}
+library(tidyr) #data
+library(dplyr)  # data manipulation
+library(ggplot2)  # data visualization
+library(maps)  # map visualization
+library(corrplot)  # correlation plot
+library(shiny)  # shiny app
+library(viridis) #graph (color scheme) enhancements
+library(shinyWidgets)#slider bar in plot app
+
+```
+
+### Data: 
+
+You can access the World Happiness Report data set on: [Kaggle](https://www.kaggle.com/datasets/unsdsn/world-happiness). 
+And we found additional years' data sets, also on Kaggle:
+[+'20-'22](https://www.kaggle.com/datasets/mathurinache/world-happiness-report/data)
+
+```{r}
+data2022 <- read.csv("2022.csv", dec=",")
+data2021 <- read.csv("2021.csv")
+data2020 <- read.csv("2020.csv")
+data2019 <- read.csv("2019.csv")
+data2018 <- read.csv("2018.csv")
+data2017 <- read.csv("2017.csv")
+data2016 <- read.csv("2016.csv")
+data2015 <- read.csv("2015.csv")
+
+data2022$year <- "2022"
+data2021$year <- "2021"
+data2020$year <- "2020"
+data2019$year <- "2019"
+data2018$year <- "2018"
+data2017$year <- "2017"
+data2016$year <- "2016"
+data2015$year <- "2015"
+```
+
+### Data cleaning
+
+```{r}
+
+dat2022 <- data2022 %>%
+   select("country"="Country", "ladder_score"="Happiness.score", "ln.GDP_per_capita"="Explained.by..GDP.per.capita", "social_support"="Explained.by..Social.support", "healthy_life_expectancy"="Explained.by..Healthy.life.expectancy", "freedoms"="Explained.by..Freedom.to.make.life.choices", "generosity"="Explained.by..Generosity", "perceptions_of_corruption"="Explained.by..Perceptions.of.corruption", "rank"="RANK","year")%>% mutate(country = gsub("\\*", "", country))
+
+dat2022$country[dat2022$country == "United States"] <- "USA"
+dat2022$country[dat2022$country == "United Kingdom"] <- "UK"
+dat2022$country[dat2022$country ==  "Congo"] <- "Republic of Congo"
+dat2022$country[dat2022$country ==  "Hong Kong S.A.R. of China"] <- "Hong Kong"
+dat2022$country[dat2022$country ==  "Taiwan Province of China"] <- "Taiwan"
+dat2022$country[dat2022$country ==  "Eswatini, Kingdom of"] <- "Swaziland"
+dat2022$country[dat2022$country ==  "Czechia"] <- "Czech Republic"
+
+#glimpse(dat2022)
+
+dat2021 <- data2021 %>%
+  mutate(rank = rank(desc(Ladder.score))) %>%
+  select("country"="Country.name", "ladder_score"="Ladder.score", "ln.GDP_per_capita"="Logged.GDP.per.capita", "social_support"="Social.support", "healthy_life_expectancy"="Healthy.life.expectancy", "freedoms"="Freedom.to.make.life.choices", "generosity"="Generosity", "perceptions_of_corruption"="Perceptions.of.corruption", "rank","year") 
+
+dat2021$country[dat2021$country == "United States"] <- "USA"
+dat2021$country[dat2021$country == "United Kingdom"] <- "UK"
+dat2021$country[dat2021$country ==  "Congo (Brazzaville)"] <- "Republic of Congo"
+dat2021$country[dat2021$country ==  "Hong Kong S.A.R. of China"] <- "Hong Kong"
+dat2021$country[dat2021$country ==  "Taiwan Province of China"] <- "Taiwan"
+ 
+#glimpse(dat2021)
+
+dat2020 <- data2020 %>% 
+  mutate(rank = rank(desc(Ladder.score))) %>%
+  select("country"="Country.name", "ladder_score"="Ladder.score", "ln.GDP_per_capita"="Logged.GDP.per.capita", "social_support"="Social.support", "healthy_life_expectancy"="Healthy.life.expectancy", "freedoms"="Freedom.to.make.life.choices", "generosity"="Generosity", "perceptions_of_corruption"="Perceptions.of.corruption", "rank","year")
+
+dat2020$country[dat2020$country == "United States"] <- "USA"
+dat2020$country[dat2020$country == "United Kingdom"] <- "UK"
+dat2020$country[dat2020$country ==  "Congo (Kinshasa)"] <- "Democratic Republic of the Congo"
+dat2020$country[dat2020$country ==  "Congo (Brazzaville)"] <- "Republic of Congo"
+dat2020$country[dat2020$country ==  "Hong Kong S.A.R. of China"] <- "Hong Kong"
+dat2020$country[dat2020$country ==  "Taiwan Province of China"] <- "Taiwan"
+dat2020$country[dat2020$country ==  "Macedonia"] <- "North Macedonia"
+ 
+#glimpse(dat2020)
+ 
+dat2019 <- data2019 %>%
+  select("country"="Country.or.region", "ladder_score"="Score", "ln.GDP_per_capita"="GDP.per.capita", "social_support"="Social.support", "healthy_life_expectancy"="Healthy.life.expectancy", "freedoms"="Freedom.to.make.life.choices", "generosity"="Generosity", "perceptions_of_corruption"="Perceptions.of.corruption", "rank"="Overall.rank","year") 
+
+dat2019$country[dat2019$country == "United States"] <- "USA"
+dat2019$country[dat2019$country == "United Kingdom"] <- "UK"
+dat2019$country[dat2019$country ==  "Congo (Kinshasa)"] <- "Democratic Republic of the Congo"
+dat2019$country[dat2019$country ==  "Congo (Brazzaville)"] <- "Republic of Congo"
+dat2019$country[dat2019$country ==  "Northern Cyprus"] <- "North Cyprus" 
+dat2019$country[dat2019$country ==  "Trinidad & Tobago"] <- "Trinidad and Tobago" 
+
+#glimpse(dat2019)
+
+dat2018 <- data2018 %>% 
+  select("country"="Country.or.region", "ladder_score"="Score", "ln.GDP_per_capita"="GDP.per.capita", "social_support"="Social.support", "healthy_life_expectancy"="Healthy.life.expectancy", "freedoms"="Freedom.to.make.life.choices", "generosity"="Generosity", "perceptions_of_corruption"="Perceptions.of.corruption", "rank"="Overall.rank","year") 
+
+dat2018$country[dat2018$country == "United States"] <- "USA"
+dat2018$country[dat2018$country == "United Kingdom"] <- "UK"
+dat2018$country[dat2018$country ==  "Congo (Kinshasa)"] <- "Democratic Republic of the Congo"
+dat2018$country[dat2018$country ==  "Congo (Brazzaville)"] <- "Republic of Congo"
+dat2018$country[dat2018$country ==  "Macedonia"] <- "North Macedonia" 
+dat2018$country[dat2018$country ==  "Northern Cyprus"] <- "North Cyprus"
+dat2018$country[dat2018$country ==  "Trinidad & Tobago"] <- "Trinidad and Tobago"
+
+#glimpse(dat2018)
+  
+dat2017 <- data2017 %>% 
+  select("country"="Country", "ladder_score"="Happiness.Score", "ln.GDP_per_capita"="Economy..GDP.per.Capita.", "social_support"="Family", "healthy_life_expectancy"="Health..Life.Expectancy.", "freedoms"="Freedom", "generosity"="Generosity", "perceptions_of_corruption"="Trust..Government.Corruption.", "rank"="Happiness.Rank","year")
+
+dat2017$country[dat2017$country == "United States"] <- "USA"
+dat2017$country[dat2017$country == "United Kingdom"] <- "UK"
+dat2017$country[dat2017$country ==  "Congo (Kinshasa)"] <- "Democratic Republic of the Congo"
+dat2017$country[dat2017$country ==  "Congo (Brazzaville)"] <- "Republic of Congo"
+dat2017$country[dat2017$country ==  "Hong Kong S.A.R., China"] <- "Hong Kong"
+dat2017$country[dat2017$country ==  "Taiwan Province of China"] <- "Taiwan"
+dat2017$country[dat2017$country ==  "Macedonia"] <- "North Macedonia" 
+ 
+#glimpse(dat2017)
+  
+dat2016 <- data2016 %>% 
+  select("country"="Country", "ladder_score"="Happiness.Score", "ln.GDP_per_capita"="Economy..GDP.per.Capita.", "social_support"="Family", "healthy_life_expectancy"="Health..Life.Expectancy.", "freedoms"="Freedom", "generosity"="Generosity", "perceptions_of_corruption"="Trust..Government.Corruption.", "rank"="Happiness.Rank","year")
+
+dat2016$country[dat2016$country == "United States"] <- "USA"
+dat2016$country[dat2016$country == "United Kingdom"] <- "UK"
+dat2016$country[dat2016$country ==  "Congo (Kinshasa)"] <- "Democratic Republic of the Congo"
+dat2016$country[dat2016$country ==  "Congo (Brazzaville)"] <- "Republic of Congo"
+dat2016$country[dat2016$country ==  "Somaliland Region"] <- "Somalia"
+dat2016$country[dat2016$country ==  "Macedonia"] <- "North Macedonia"   
+
+#glimpse(dat2016)
+  
+dat2015 <- data2015 %>% 
+  select("country"="Country", "ladder_score"="Happiness.Score", "ln.GDP_per_capita"="Economy..GDP.per.Capita.", "social_support"="Family", "healthy_life_expectancy"="Health..Life.Expectancy.", "freedoms"="Freedom", "generosity"="Generosity", "perceptions_of_corruption"="Trust..Government.Corruption.", "rank"="Happiness.Rank","year")
+  
+dat2015$country[dat2015$country == "United States"] <- "USA"
+dat2015$country[dat2015$country == "United Kingdom"] <- "UK"
+dat2015$country[dat2015$country ==  "Congo (Kinshasa)"] <- "Democratic Republic of the Congo"
+dat2015$country[dat2015$country ==  "Congo (Brazzaville)"] <- "Republic of Congo"  
+dat2015$country[dat2015$country ==  "Somaliland region"] <- "Somalia"  
+dat2015$country[dat2015$country ==  "Macedonia"] <- "North Macedonia" 
+
+#Combining the data for both years
+combined_years <- rbind(dat2015, dat2017, dat2019, dat2022) 
+data <- rbind(dat2022, dat2021, dat2020, dat2019, dat2018, dat2017, dat2016, dat2015)
+
+```
+
+Our exploration probes the nuances of these factors, unveiling shifts in happiness rankings and identifying trends that inform policy-making for improved societal well-being. As we navigate through the data, we unravel the complexities of happiness, understanding it as a multifaceted human experience that extends beyond what can be captured in numbers alone.
+
+### Data Overview
+We'll be using correlation graphing and scatter plots density and bar graphs to exemplify weighting by factors to potentiate citizen's satisfaction in life.
+
+The "glimpse" of the data set offers a quick look at its structure and the types of data it contains for our analysis. Essential variables within the data set include the ladder happiness score of each country, as well as factors such as GDP per capita, social support, and healthy life expectancy, freedoms, generosity, and perceptions of government corruption. These factors are believed to have an impact on the happiness score.
+```{r}
+glimpse(data)
+```
+
+### Top and Bottom Countries in the World Happiness Report 
+
+
+In our analysis of the World Happiness Report for 2019, we first present a snapshot of the countries that are at opposite ends of the happiness spectrum. These tables highlight the top 5 and bottom 5 countries based on their ladder scores, providing an initial overview that sets the stage for deeper analysis.
+
+#### Top 5 Countries
+The following table showcases the countries with the highest happiness scores:
+
+```{r}
+top5_19 <- data2019 %>%
+  arrange(desc(Score)) %>%
+  select("country 2019"="Country.or.region", "Score", "Overall.rank") %>%
+  head(5)
+
+top5_19
+```
+
+These countries, known for their high living standards and robust social systems, lead the global rankings in happiness.
+
+
+#### Bottom 5 Countries
+
+Conversely, the table below lists the countries with the lowest happiness scores:
+
+```{r}
+bottom5_19 <- data2019 %>%
+  arrange(Score) %>%
+  select("country 2019"="Country.or.region", "Score", "Overall.rank") %>%
+  head(5)
+
+bottom5_19
+```
+
+
+#### Future Exploration and Analysis
+
+The tables above provide a clear starting point for our investigation into what drives the levels of happiness in these countries. Moving forward, we will delve deeper into the data, examining various socio-economic and political factors that might influence these rankings. Our goal is to uncover the underlying reasons behind the high happiness scores in the top-ranking countries and the challenges faced by those at the bottom. This analysis will not only shed light on the current state of global happiness but also offer insights into the complex interplay of factors that contribute to the well-being of nations.
+
+
+
+#### Histogram of Happiness Scores
+
+A histogram displays a distribution of happiness scores across countries. The shape and spread of this distribution can give us an initial understanding of global happiness levels and variance.
+
+```{r}
+hist(data2019$Score, main="Happiness Scores - 2019", xlab="Score", col="blue", border="black")
+
+```
+
+
+The histogram of happiness scores suggests a symmetric distribution, with a roughly equal number of countries reporting happiness scores above and below the mean score of approximately 5.41. This balance indicates that global happiness levels are fairly evenly distributed across the dataset, with no significant skew toward higher or lower scores. The central tendency is around the mid-range of the scale, which points to a moderate level of happiness reported by most countries.
+
+
+#### Social Support vs. Happiness Score
+
+```{r}
+
+ggplot(data2019, aes(x=Social.support, y=Score)) +
+  geom_point(colour="blue") +
+  theme_minimal() +
+  ggtitle("Social Support vs Happiness Score") +
+  xlab("Social Support") +
+  ylab("Happiness Score")
+
+```
+
+
+This scatter plot illustrates a positive correlation between social support and happiness scores across countries in the 2019 World Happiness Report. The upward trend suggests that higher levels of social support are generally associated with increased happiness. However, the spread of data points indicates that while social support is a significant factor, it is not the sole determinant of happiness, as countries with similar social support levels show varying happiness scores. The cluster of points towards the upper end of the scale implies that stronger social support systems are a common feature among the happiest countries.
+
+
+
+#### GDP per Capita vs. Happiness Score
+
+```{r}
+ggplot(data2019, aes(x=GDP.per.capita, y=Score)) +
+  geom_point(colour="red") +
+  theme_minimal() +
+  ggtitle("GDP per Capita vs Happiness Score") +
+  xlab("GDP per Capita") +
+  ylab("Happiness Score")
+
+```
+
+This graph displays a scatter plot mapping the relationship between GDP per Capita and Happiness Score among various countries from the 2019 World Happiness Report. The data points, marked in red, suggest a positive association where countries with higher GDP per capita tend to report higher happiness scores. The pattern indicates that economic prosperity may be an important factor in contributing to a country's overall happiness, although the variation among countries with similar GDP suggests that other factors also play a significant role in determining happiness levels.
+
+
+#### FACET
+```{r}
+# Create a new column for the continent
+data2019$Continent <- NA
+
+# Assign countries to continents
+# Europe
+data2019$Continent[data2019$Country.or.region %in% c("Finland", "Denmark", "Norway", "Iceland", "Netherlands", "Switzerland", "Sweden", "Luxembourg", "United Kingdom", "Ireland", "Germany", "Belgium", "Austria", "Czech Republic", "Malta", "Slovakia", "Poland", "Lithuania", "Slovenia", "Kosovo", "Cyprus", "Estonia", "Latvia", "Hungary", "Russia", "Serbia", "Moldova", "Montenegro", "Croatia", "Bosnia and Herzegovina", "Greece", "North Macedonia", "Bulgaria", "Romania", "Ukraine", "Belarus", "Spain", "Portugal", "Italy", "France","Northern Cyprus", "Turkey", "Albania")] <- "Europe"
+
+# Asia
+data2019$Continent[data2019$Country.or.region %in% c("Israel", "United Arab Emirates", "Qatar", "Saudi Arabia", "Bahrain", "Kuwait", "Thailand", "South Korea", "Japan", "Kazakhstan", "Pakistan", "Philippines", "Tajikistan", "Uzbekistan", "Turkmenistan", "Kyrgyzstan", "China", "Taiwan", "Vietnam", "Indonesia", "Malaysia", "Singapore", "Cambodia", "Hong Kong", "Myanmar", "Nepal", "Jordan", "Lebanon", "Azerbaijan", "Georgia", "Armenia", "India", "Bangladesh", "Sri Lanka","Mongolia","Laos","Palestinian Territories", "Iran", "Iraq", "Afghanistan","Yemen", "Syria","Bhutan")] <- "Asia"
+
+# North America
+data2019$Continent[data2019$Country.or.region %in% c("Canada", "United States", "Mexico", "Guatemala", "Costa Rica", "El Salvador", "Nicaragua", "Panama", "Trinidad & Tobago", "Jamaica", "Dominican Republic", "Honduras","Haiti")] <- "North America"
+
+# South America
+data2019$Continent[data2019$Country.or.region %in% c("Brazil", "Chile", "Argentina", "Colombia", "Uruguay", "Ecuador", "Bolivia", "Peru", "Paraguay", "Venezuela")] <- "South America"
+
+# Africa
+data2019$Continent[data2019$Country.or.region %in% c("Mauritius", "Nigeria", "Algeria", "Morocco", "Ivory Coast", "Benin", "Congo (Brazzaville)", "Gabon", "South Africa", "Namibia", "Niger", "Burkina Faso", "Guinea", "Gambia", "Kenya", "Mauritania", "Mozambique", "Tunisia", "Mali", "Sierra Leone", "Chad", "Ethiopia", "Swaziland", "Uganda", "Egypt", "Zambia", "Togo", "Liberia", "Comoros", "Madagascar", "Lesotho", "Burundi", "Zimbabwe", "Botswana", "Malawi", "Rwanda", "Tanzania", "Central African Republic", "South Sudan","Libya", "Cameroon", "Ghana","Somalia", "Congo (Kinshasa)","Senegal")] <- "Africa"
+
+# Oceania
+data2019$Continent[data2019$Country.or.region %in% c("Australia", "New Zealand")] <- "Oceania"
+
+```
+
+In the absence of continent information in the original 2019 World Happiness Report data set, we enriched the data by manually assigning countries to their respective continents. This enrichment involved creating a new column named 'Continent' and categorizing each country according to standard geographical classifications.
+
+The categorization was performed through a series of conditional operations, matching countries to predefined lists for each continent—Europe, Asia, North America, South America, Africa, and Oceania.
+
+With the data set now including continent data, we can conduct more detailed analyses, such as comparing happiness scores across different continents or examining regional patterns. This additional information enables a deeper and broader understanding of the factors that influence happiness scores around the globe.
+
+```{r}
+ggplot(data2019, aes(x=GDP.per.capita, y=Score)) +
+  geom_point(colour="red") +
+  theme_minimal() +
+  ggtitle("GDP per Capita vs Happiness Score") +
+  xlab("GDP per Capita") +
+  ylab("Happiness Score") +
+  facet_wrap(~Continent)
+```
+
+Building on this enriched data set, our analysis includes a comparison of GDP per Capita against Happiness Scores, segmented by continent. The visualization reveals the relationship between economic status and happiness within each region. Notably, Europe presents a concentration of countries with high GDP and high happiness scores, suggesting a correlation in this region. In contrast, Africa shows a more scattered pattern, indicating a less straightforward relationship between economic output and happiness. North America, though represented by fewer countries, displays consistently high happiness scores across a range of GDP values. It is crucial to acknowledge that Oceania's representation by just two countries necessitates caution when interpreting trends for this region. These patterns underscore that while there may be a link between economic prosperity and happiness, the nature and degree of this connection differ across various global contexts.
+
+
+
+```{r}
+## Boxplot of Happiness Scores by Continent
+
+ggplot(data2019, aes(x=Continent, y=Score)) +
+  geom_boxplot() +
+  theme_minimal() +
+  ggtitle("Happiness Scores by Continent") +
+  xlab("Continent") +
+  ylab("Score")
+
+```
+
+This box plot provides a comparison of the distribution of happiness scores across continents. The central line in each box represents the median happiness score, while the top and bottom edges of the box indicate the interquartile range (25th to 75th percentile). The whiskers extend to the highest and lowest values within 1.5 times the interquartile range from the box, and points beyond this are plotted individually as outliers.
+
+Several insights emerge from the plot:
+
+* Africa shows a wide range of happiness scores with a lower median, indicating varied levels of happiness across countries on this continent.
+
+* Asia also displays a wide range but with a higher median score compared to Africa, reflecting a generally higher level of happiness among its diverse countries.
+
+* Europe has a notably higher median happiness score and a narrower interquartile range, suggesting more consistent happiness levels across European nations.
+
+* North America presents a smaller interquartile range with high median happiness scores, indicating that most countries in this continent report high levels of happiness.
+
+* Oceania, represented by only a couple of countries, shows a high median happiness score with a small range, suggesting consistent happiness levels in this small sample.
+
+* South America exhibits a range of scores similar to Asia but with fewer outliers, suggesting more uniformity in happiness scores across South American countries.
+
+
+
+
+
+#### Density Plot of Happiness Scores by Continent
+
+In our pursuit to understand the nuances of global well-being, we look at the distribution of happiness scores across all continents. This initial overview provides a baseline from which we can observe the variations in happiness across a global spectrum.
+
+```{r}
+
+
+ggplot(data2019, aes(x=Score, fill=Continent)) +
+  geom_density(alpha=0.7) +
+  theme_minimal() +
+  ggtitle("Density Plot of Happiness Scores by Continent") +
+  xlab("Happiness Score") +
+  ylab("Density") +
+  scale_fill_brewer(palette="Set3")
+
+
+```
+
+Upon examining the initial density plot, we note the distribution of happiness scores for each continent. However, Oceania's representation, with a sharp and narrow peak, draws attention to the potential distortions that can arise from small sample sizes. To ensure a fair and balanced comparison amongst a larger and more diverse set of countries, we refine our analysis by re-constructing the density plot after excluding Oceania.
+
+#### Density Plot of Happiness Scores by Continent (Excluding Oceania)
+```{r}
+ggplot(data2019[data2019$Continent != "Oceania",], aes(x=Score, fill=Continent)) +
+  geom_density(alpha=0.7) +
+  theme_minimal() +
+  ggtitle("Density Plot of Happiness Scores by Continent (Excluding Oceania)") +
+  xlab("Happiness Score") +
+  ylab("Density") +
+  scale_fill_brewer(palette="Set3")
+```
+
+The revised density plot offers a clearer view of the happiness score distributions without the disproportionate influence of Oceania's minimal data set. By comparing the continents more equitably, we gain valuable insights into the commonalities and variances within the global landscape of happiness. This approach allows for a more accurate reflection on the factors that contribute to well-being across different cultural and geographic contexts.
+
+
+#### Correlation Matrix
+The correlation matrix and pairs plot reveal key relationships between happiness scores and various influencing factors. GDP per capita, social support, and healthy life expectancy show strong positive correlations with happiness scores, suggesting that economic and social well-being are closely linked to the perceived happiness of nations. Freedom to make life choices also displays a notable positive correlation, highlighting the value of autonomy in contributing to happiness.  
+
+```{r}
+cor_matrix <- cor(data2019[,c('Score', 'GDP.per.capita', 'Social.support', 'Healthy.life.expectancy', 
+                              'Freedom.to.make.life.choices', 'Generosity', 'Perceptions.of.corruption')])
+corrplot(cor_matrix, method="circle")
+
+
+data2019 %>% select('Score', 'GDP.per.capita', 'Social.support', 'Healthy.life.expectancy', 
+                              'Freedom.to.make.life.choices', 'Generosity', 'Perceptions.of.corruption') %>% pairs()
+```
+
+
+
+In contrast, generosity and perceptions of corruption have weaker correlations with happiness. This indicates that their impact on happiness, while present, may be less direct or potent compared to economic and health factors.
+
+The visualization of data points in the pairs plot affirms these correlations, with clear upward trends observed in plots associated with the stronger correlating variables. This graphical analysis provides a clear indication of the different weights that these factors carry in the assessment of national happiness.
+
+#### World Map Visualization of Happiness Scores
+The "Global Happiness Score Map" provides a visual representation of happiness scores across the world, offering an immediate geographical perspective on the data that has been discussed.
+
+```{r}
+#prep data for shiny app
+
+dat <- list("2015" = dat2015, "2016" = dat2016, "2017" = dat2017, "2018" = dat2018, "2019" = dat2019, "2020" = dat2020, "2021" = dat2021, "2022" = dat2022)
+```
+
+```{r App}
+#Make an interactive shiny world map of ladder_score over the years
+
+
+shinyApp(
+ui <- fluidPage(
+  titlePanel("Global Happiness Score Map"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderTextInput("year", "Year:", choices = names(dat), selected = "2015")
+    ),
+    mainPanel(
+      plotOutput("mapPlot")
+    )
+  )
+),
+server <- function(input, output) {
+  output$mapPlot <- renderPlot({
+    world_map <- map_data("world")
+    year_map <- merge(world_map, dat[[input$year]], by.x="region", by.y="country", all.x = T)
+    ggplot(year_map, aes(map_id = region, fill = ladder_score)) +
+      geom_map(map = world_map) +
+      expand_limits(x = world_map$long, y = world_map$lat) +
+      coord_cartesian(ylim = c(-90, 90)) +
+      theme_minimal() +
+      scale_fill_viridis_c(option = "plasma") +
+      labs(fill = "Happiness\nScore", title = paste(input$year, "Global Happiness Score Map"))
+  })
+},
+
+  options = list(height = 500)
+)
+
+```
+
+The global map, colored by happiness scores, highlights geographical patterns in happiness. This visual representation can be pivotal in identifying regional trends and disparities in happiness, offering a unique perspective on how location and culture may impact overall well-being. You can slide to select a different year for historical comparisons. It does shed light on the fact that some countries are left out from sampling certain years or every year.
+
+## Decoding Happiness: The Impact of Various Factors on Well-being
+
+```{r}
+data2019 %>%
+  select(GDP.per.capita, Social.support, Healthy.life.expectancy, Freedom.to.make.life.choices, Generosity, Perceptions.of.corruption) %>%
+  gather(key = "factor", value = "contribution") %>%
+  group_by(factor) %>%
+  summarise(avg_contribution = mean(contribution, na.rm = TRUE)) %>%
+  ggplot(aes(x = reorder(factor, avg_contribution), y = avg_contribution)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  coord_flip() +
+  ggtitle("Average Factor Contributions to Happiness") +
+  xlab("Factor") +
+  ylab("Average Contribution")
+
+
+```
+
+The bar chart "Average Factor Contributions to Happiness" dissects the complex interplay of factors that influence national happiness levels. Social support emerges as the most significant contributor, underscoring the fundamental role of human connections in fostering well-being. Economic prosperity, as measured by GDP per capita, also plays a critical part, followed closely by healthy life expectancy, which represents the health dimension of happiness. The contribution of freedom to make life choices is depicted as substantial, reflecting the importance of autonomy and personal agency.
+
+In contrast, generosity and perceptions of corruption appear as less influential in the average contribution to happiness, which may reflect cultural variations in the expression of altruism and the subjective interpretation of governance quality. This chart encapsulates the multi-faceted nature of happiness and the varying degrees to which different factors can shape the happiness narrative across countries.
+
+##  A Comparative View from 2015 to 2022
+
+We explore the shifts in global happiness scores over recent years. The density plot below offers a visual representation of happiness score distributions from the years 2015, 2017, 2019, and 2022. This visualization allows us to quickly ascertain trends and changes in global well-being as reported across these different time points.
+
+```{r}
+combined_years %>% ggplot(aes(x = ladder_score, color = year)) + geom_density()
+
+
+
+```
+
+
+The graph reveals subtle yet insightful shifts, with the distribution for 2015 showing a slightly lower peak in happiness scores compared to 2022. This observation suggests an incremental rise in global happiness scores over the last seven years. However, the considerable overlap between the distributions of the intervening years indicates that the overall global happiness has remained fairly stable, with no drastic year-over-year changes.
+
+## Conclusion
+
+Throughout this report, we have navigated the complex landscape of global happiness, utilizing a rich dataset to explore the various dimensions that contribute to a nation's well-being. Our analysis has underscored the significance of social support, economic stability, and health as pivotal factors that correlate strongly with higher happiness scores. We have also observed the essential role of personal freedoms in shaping individuals' contentment, while noting that generosity and perceptions of corruption, though influential, have a subtler impact on national happiness levels.
+
+The geographical insights provided by the Global Happiness Score Map, along with the detailed statistical visualizations, have allowed us to discern regional patterns and variations in happiness. These findings point towards a broader understanding that happiness is not a monolithic state but rather a nuanced experience influenced by a tapestry of socio-economic and cultural factors.
+
+As we close this chapter of analysis, it is evident that the pursuit of happiness transcends mere numbers; it is an endeavor that requires a holistic approach to nurturing the various facets of human life. By acknowledging the diverse drivers of happiness, policymakers and societies can strive towards creating environments that foster happiness and well-being for all.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
